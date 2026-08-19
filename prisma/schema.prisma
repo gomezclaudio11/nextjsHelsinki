@@ -1,0 +1,76 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model User {
+  id            String                @id @default(cuid())
+  email         String                @unique
+  password      String
+  name          String
+  role          String                @default("doctor") // admin, doctor, nurse
+  createdAt     DateTime              @default(now())
+  templates     SpreadsheetTemplate[]
+  records       CustomRecord[]
+  legacyRecords HospitalRecord[]
+}
+
+model SpreadsheetTemplate {
+  id          String             @id @default(cuid())
+  title       String
+  description String?
+  userId      String
+  user        User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  variables   TemplateVariable[]
+  records     CustomRecord[]
+  createdAt   DateTime           @default(now())
+}
+
+model TemplateVariable {
+  id         String              @id @default(cuid())
+  name       String              // Nombre personalizado de la variable (ej. "Temperatura", "Diagnóstico")
+  type       String              @default("number") // "number" o "text"
+  templateId String
+  template   SpreadsheetTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  values     RecordValue[]
+}
+
+model CustomRecord {
+  id         String              @id @default(cuid())
+  templateId String
+  template   SpreadsheetTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  values     RecordValue[]
+  createdAt  DateTime            @default(now())
+}
+
+model RecordValue {
+  id          String           @id @default(cuid())
+  recordId    String
+  record      CustomRecord     @relation(fields: [recordId], references: [id], onDelete: Cascade)
+  variableId  String
+  variable    TemplateVariable @relation(fields: [variableId], references: [id], onDelete: Cascade)
+  numberValue Float?           // Valor numérico para métricas y gráficos
+  textValue   String?          // Valor de texto para observaciones o diagnósticos
+}
+
+model HospitalRecord {
+  id                 String   @id @default(cuid())
+  date               DateTime @default(now())
+  serviceArea        String   // Urgencias, UTI, Pediatría, Cirugía, etc.
+  bedOccupancy       Int      // % o número de camas ocupadas
+  admissions         Int      // Nuevos ingresos
+  discharges         Int      // Altas médicas
+  avgWaitTimeMinutes Float    // Tiempo promedio de espera en minutos
+  infectionRate      Float    // Tasa de infección intrahospitalaria %
+  userId             String
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt          DateTime @default(now())
+}

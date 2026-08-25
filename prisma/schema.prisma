@@ -35,7 +35,7 @@ model SpreadsheetTemplate {
 model TemplateVariable {
   id         String              @id @default(cuid())
   name       String              // Nombre personalizado de la variable (ej. "Temperatura", "Diagnóstico")
-  type       String              @default("number") // "number" o "text"
+  type       String              @default("number") // "number", "text" o "date"
   templateId String
   template   SpreadsheetTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
   values     RecordValue[]

@@ -7,7 +7,7 @@ import Link from "next/link";
 
 interface VariableInput {
   name: string;
-  type: "number" | "text";
+  type: "number" | "text" | "date";
 }
 
 export default function NewTemplatePage() {
@@ -20,7 +20,7 @@ export default function NewTemplatePage() {
     { name: "Tiempo de Espera", type: "number" },
   ]);
   const [newVarName, setNewVarName] = useState("");
-  const [newVarType, setNewVarType] = useState<"number" | "text">("number");
+  const [newVarType, setNewVarType] = useState<"number" | "text" | "date">("number");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -163,11 +163,12 @@ export default function NewTemplatePage() {
                 />
                 <select
                   value={newVarType}
-                  onChange={(e) => setNewVarType(e.target.value as "number" | "text")}
+                  onChange={(e) => setNewVarType(e.target.value as "number" | "text" | "date")}
                   className="bg-slate-900 border border-slate-700 text-white px-3 py-2 rounded-lg focus:outline-none focus:border-teal-500 text-sm"
                 >
                   <option value="number">Numérica</option>
                   <option value="text">Texto / Observación</option>
+                  <option value="date">Fecha (Día, Mes, Año)</option>
                 </select>
                 <button
                   type="button"
@@ -190,8 +191,8 @@ export default function NewTemplatePage() {
                         {index + 1}
                       </span>
                       <span>{v.name}</span>
-                      <span className={`text-[10px] px-2 py-0.5 rounded font-medium ${v.type === 'number' ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' : 'bg-purple-500/10 text-purple-400 border border-purple-500/20'}`}>
-                        {v.type === 'number' ? 'Numérica' : 'Texto'}
+                      <span className={`text-[10px] px-2 py-0.5 rounded font-medium ${v.type === 'number' ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' : v.type === 'date' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-purple-500/10 text-purple-400 border border-purple-500/20'}`}>
+                        {v.type === 'number' ? 'Numérica' : v.type === 'date' ? 'Fecha' : 'Texto'}
                       </span>
                     </div>
                     <button

@@ -28,6 +28,7 @@ export default function TemplateDetailPage() {
   const [formValues, setFormValues] = useState<{ [variableId: string]: string }>({});
   const [selectedChartVars, setSelectedChartVars] = useState<string[]>([]);
   const [selectedTableVars, setSelectedTableVars] = useState<string[]>([]);
+  const [selectedStatVars, setSelectedStatVars] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
@@ -61,10 +62,11 @@ export default function TemplateDetailPage() {
       const numericIds = data.variables
         .filter((v: any) => v.type === "number")
         .map((v: any) => v.id);
-      setSelectedChartVars(numericIds);
-
       const allIds = data.variables.map((v: any) => v.id);
-      setSelectedTableVars(allIds);
+
+      setSelectedChartVars(prev => prev.length === 0 ? numericIds : prev.filter(id => allIds.includes(id)));
+      setSelectedTableVars(prev => prev.length === 0 ? allIds : prev.filter(id => allIds.includes(id)));
+      setSelectedStatVars(prev => prev.length === 0 ? allIds : prev.filter(id => allIds.includes(id)));
 
       setLoading(false);
     } catch (err: any) {
@@ -95,6 +97,16 @@ export default function TemplateDetailPage() {
       setSelectedTableVars(selectedTableVars.filter((vId) => vId !== variableId));
     } else {
       setSelectedTableVars([...selectedTableVars, variableId]);
+    }
+  };
+
+  const hideStatVariable = (variableId: string) => {
+    setSelectedStatVars(selectedStatVars.filter((vId) => vId !== variableId));
+  };
+
+  const restoreStatVariables = () => {
+    if (template && template.variables) {
+      setSelectedStatVars(template.variables.map((v: any) => v.id));
     }
   };
 
@@ -188,6 +200,19 @@ export default function TemplateDetailPage() {
     );
   }
 
+  const formatCellValue = (variable: any, valMap: any) => {
+    const val = valMap[variable.id];
+    if (val === undefined || val === null || val === "") return "-";
+    if (variable.type === "date") {
+      try {
+        const [y, m, d] = String(val).split("-");
+        if (y && m && d) return `${d}/${m}/${y}`;
+      } catch {}
+      return val;
+    }
+    return val;
+  };
+
   const numericVariables = template.variables.filter((v: any) => v.type === "number");
   const activeNumericVariables = numericVariables.filter((v: any) => selectedChartVars.includes(v.id));
   const activeTableVariables = template.variables.filter((v: any) => selectedTableVars.includes(v.id));
@@ -200,6 +225,28 @@ export default function TemplateDetailPage() {
       const validNums = values.map((val: any) => val.numberValue).filter((n: any) => n !== null && n !== undefined);
       const avg = validNums.length > 0 ? (validNums.reduce((a: number, b: number) => a + b, 0) / validNums.length).toFixed(1) : "N/A";
       return { ...v, statType: "number", average: avg, totalCount: validNums.length };
+    } else if (v.type === "date") {
+      const validDates = values.map((val: any) => val.textValue).filter((t: any) => t && t.trim() !== "");
+      const freq: { [key: string]: number } = {};
+      validDates.forEach((t: string) => {
+        freq[t] = (freq[t] || 0) + 1;
+      });
+      let mostFrequent = "N/A";
+      let maxCount = 0;
+      Object.entries(freq).forEach(([dateStr, count]) => {
+        if (count > maxCount) {
+          maxCount = count;
+          try {
+            const [y, m, d] = dateStr.split("-");
+            mostFrequent = y && m && d ? `${d}/${m}/${y}` : dateStr;
+          } catch {
+            mostFrequent = dateStr;
+          }
+        }
+      });
+      const totalCount = validDates.length;
+      const percentage = totalCount > 0 ? ((maxCount / totalCount) * 100).toFixed(1) + "%" : "0.0%";
+      return { ...v, statType: "date", totalCount, mostFrequent, percentage };
     } else {
       const validTexts = values.map((val: any) => val.textValue).filter((t: any) => t && t.trim() !== "");
       const freq: { [key: string]: number } = {};
@@ -214,9 +261,13 @@ export default function TemplateDetailPage() {
           mostFrequent = text;
         }
       });
-      return { ...v, statType: "text", totalCount: validTexts.length, mostFrequent };
+      const totalCount = validTexts.length;
+      const percentage = totalCount > 0 ? ((maxCount / totalCount) * 100).toFixed(1) + "%" : "0.0%";
+      return { ...v, statType: "text", totalCount, mostFrequent, percentage };
     }
   });
+
+  const activeVariableStats = variableStats.filter((stat: any) => selectedStatVars.includes(stat.id));
 
   const chartData = template.records.map((record: any, index: number) => {
     const entry: any = {
@@ -303,7 +354,9 @@ export default function TemplateDetailPage() {
                 <div key={variable.id}>
                   <div className="flex items-center justify-between mb-1.5">
                     <label className="block text-xs font-medium text-slate-300">{variable.name}</label>
-                    <span className="text-[10px] text-slate-500">{variable.type === 'number' ? 'Numérico' : 'Texto'}</span>
+                    <span className="text-[10px] text-slate-500">
+                      {variable.type === 'number' ? 'Numérico' : variable.type === 'date' ? 'Fecha' : 'Texto'}
+                    </span>
                   </div>
                   {variable.type === 'number' ? (
                     <input
@@ -312,6 +365,14 @@ export default function TemplateDetailPage() {
                       value={formValues[variable.id] !== undefined ? formValues[variable.id] : ""}
                       onChange={(e) => handleInputChange(variable.id, e.target.value)}
                       placeholder="Ingrese valor numérico..."
+                      required
+                      className="w-full bg-slate-900 border border-slate-700 text-white px-3.5 py-2 rounded-lg focus:outline-none focus:border-teal-500 text-sm"
+                    />
+                  ) : variable.type === 'date' ? (
+                    <input
+                      type="date"
+                      value={formValues[variable.id] !== undefined ? formValues[variable.id] : ""}
+                      onChange={(e) => handleInputChange(variable.id, e.target.value)}
                       required
                       className="w-full bg-slate-900 border border-slate-700 text-white px-3.5 py-2 rounded-lg focus:outline-none focus:border-teal-500 text-sm"
                     />
@@ -511,7 +572,7 @@ export default function TemplateDetailPage() {
                         <td className="px-4 py-3 font-medium text-white">{record.user?.name || "N/A"}</td>
                         {activeTableVariables.map((v: any) => (
                           <td key={v.id} className="px-4 py-3">
-                            {valMap[v.id] !== undefined && valMap[v.id] !== null ? valMap[v.id] : "-"}
+                            {formatCellValue(v, valMap)}
                           </td>
                         ))}
                         <td className="px-4 py-3 text-right">
@@ -540,33 +601,76 @@ export default function TemplateDetailPage() {
           {/* Statistics Summary Section below the table */}
           {template.records.length > 0 && (
             <div className="border-t border-slate-700 pt-6 mt-6">
-              <h4 className="text-sm font-bold text-white mb-3 flex items-center gap-2">
-                <Calculator size={16} className="text-teal-400" />
-                Resumen Estadístico (Promedios y Frecuencias)
-              </h4>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {variableStats.map((stat: any) => (
-                  <div key={stat.id} className="bg-slate-900 border border-slate-700 rounded-xl p-4">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-xs text-slate-400 font-medium">{stat.name}</span>
-                      <span className="text-[10px] text-slate-500">{stat.type === 'number' ? 'Numérico' : 'Texto'}</span>
-                    </div>
-                    {stat.statType === 'number' ? (
-                      <div>
-                        <div className="text-xl font-bold text-teal-400">{stat.average}</div>
-                        <p className="text-[11px] text-slate-500 mt-0.5">Promedio general ({stat.totalCount} registros)</p>
-                      </div>
-                    ) : (
-                      <div>
-                        <div className="text-sm font-bold text-purple-400 truncate" title={stat.mostFrequent}>
-                          {stat.mostFrequent}
-                        </div>
-                        <p className="text-[11px] text-slate-500 mt-0.5">Más frecuente ({stat.totalCount} registros)</p>
-                      </div>
-                    )}
-                  </div>
-                ))}
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                  <Calculator size={16} className="text-teal-400" />
+                  Resumen Estadístico (Promedios y Frecuencias)
+                </h4>
+                {activeVariableStats.length < variableStats.length && (
+                  <button
+                    type="button"
+                    onClick={restoreStatVariables}
+                    className="text-xs text-teal-400 hover:text-teal-300 underline transition-colors"
+                  >
+                    Restaurar tarjetas ocultas
+                  </button>
+                )}
               </div>
+              {activeVariableStats.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {activeVariableStats.map((stat: any) => (
+                    <div key={stat.id} className="bg-slate-900 border border-slate-700 rounded-xl p-4 relative group">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs text-slate-400 font-medium truncate pr-6" title={stat.name}>{stat.name}</span>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[10px] text-slate-500">
+                            {stat.type === 'number' ? 'Numérico' : stat.type === 'date' ? 'Fecha' : 'Texto'}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => hideStatVariable(stat.id)}
+                            className="text-slate-500 hover:text-rose-400 transition-colors p-0.5 rounded"
+                            title="Eliminar tarjeta"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      </div>
+                      {stat.statType === 'number' ? (
+                        <div>
+                          <div className="text-xl font-bold text-teal-400">{stat.average}</div>
+                          <p className="text-[11px] text-slate-500 mt-0.5">Promedio general ({stat.totalCount} registros)</p>
+                        </div>
+                      ) : stat.statType === 'date' ? (
+                        <div>
+                          <div className="text-sm font-bold text-emerald-400 truncate" title={stat.mostFrequent}>
+                            {stat.mostFrequent}
+                          </div>
+                          <p className="text-[11px] text-slate-500 mt-0.5">
+                            Fecha más frecuente ({stat.percentage} del total, {stat.totalCount} reg.)
+                          </p>
+                        </div>
+                      ) : (
+                        <div>
+                          <div className="text-sm font-bold text-purple-400 truncate" title={stat.mostFrequent}>
+                            {stat.mostFrequent}
+                          </div>
+                          <p className="text-[11px] text-slate-500 mt-0.5">
+                            Más frecuente ({stat.percentage} del total, {stat.totalCount} reg.)
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-4 text-slate-500 text-xs">
+                  Todas las tarjetas del resumen estadístico han sido eliminadas.{" "}
+                  <button onClick={restoreStatVariables} className="text-teal-400 underline hover:text-teal-300">
+                    Restaurar tarjetas
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>

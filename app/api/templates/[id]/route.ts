@@ -54,10 +54,10 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       where: { templateId: id },
     });
 
-    const existingIds = existingVariables.map((v) => v.id);
+    const existingIds = existingVariables.map((v: any) => v.id);
     const incomingIds = variables.filter((v: any) => v.id).map((v: any) => v.id);
 
-    const varsToDelete = existingIds.filter((dbId) => !incomingIds.includes(dbId));
+    const varsToDelete = existingIds.filter((dbId: any) => !incomingIds.includes(dbId));
     if (varsToDelete.length > 0) {
       await prisma.templateVariable.deleteMany({
         where: { id: { in: varsToDelete } },

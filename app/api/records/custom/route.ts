@@ -28,7 +28,7 @@ export async function POST(request: Request) {
         }));
 
     const createValuesData = valueEntries.map((entry: { variableId: string; value: any }) => {
-      const variable = template.variables.find((v) => v.id === entry.variableId);
+      const variable = template.variables.find((v: any) => v.id === entry.variableId);
       const isNumber = variable?.type === "number";
 
       if (isNumber) {

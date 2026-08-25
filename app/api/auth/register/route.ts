@@ -18,7 +18,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "El correo electrónico ya está registrado" }, { status: 400 });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword = await bcrypt.hash(password, 8);
 
     const newUser = await prisma.user.create({
       data: {

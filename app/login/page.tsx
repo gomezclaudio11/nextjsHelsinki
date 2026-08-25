@@ -4,6 +4,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Activity, Lock, Mail, AlertCircle } from "lucide-react";
 
 export default function LoginPage() {
@@ -100,7 +101,16 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <div className="mt-6 text-center text-xs text-slate-500">
+        <div className="mt-6 flex items-center justify-between text-xs">
+          <Link href="/forgot-password" className="text-teal-400 hover:underline">
+            ¿Olvidaste tu contraseña?
+          </Link>
+          <Link href="/register" className="text-teal-400 hover:underline font-medium">
+            Crear nuevo usuario
+          </Link>
+        </div>
+
+        <div className="mt-4 text-center text-xs text-slate-500">
           Credenciales por defecto: <span className="text-slate-400">doctor@hospital.com</span> / <span className="text-slate-400">123456</span>
         </div>
       </div>

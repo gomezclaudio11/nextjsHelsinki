@@ -39,6 +39,12 @@ export default function EditTemplatePage() {
         .then((res) => res.json())
         .then((data) => {
           if (!data || data.error) throw new Error(data.error || "Planilla no encontrada");
+          const parsedUser = JSON.parse(storedUser);
+          if (data.userId !== parsedUser.id && parsedUser.role !== 'admin') {
+            alert("No tienes permisos para editar esta planilla");
+            router.push(`/dashboard/templates/${id}`);
+            return;
+          }
           setTitle(data.title);
           setDescription(data.description || "");
           setVariables(data.variables);
@@ -95,6 +101,7 @@ export default function EditTemplatePage() {
           title,
           description,
           variables,
+          userId: user.id,
         }),
       });
 

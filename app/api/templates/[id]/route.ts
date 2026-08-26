@@ -36,10 +36,25 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
   try {
     const { id } = await params;
     const body = await request.json();
-    const { title, description, variables } = body;
+    const { title, description, variables, userId } = body;
 
     if (!title || !variables || !Array.isArray(variables)) {
       return NextResponse.json({ error: "Título y variables son obligatorios" }, { status: 400 });
+    }
+
+    const template = await prisma.spreadsheetTemplate.findUnique({
+      where: { id },
+    });
+
+    if (!template) {
+      return NextResponse.json({ error: "Planilla no encontrada" }, { status: 404 });
+    }
+
+    if (userId) {
+      const user = await prisma.user.findUnique({ where: { id: userId } });
+      if (!user || (template.userId !== userId && user.role !== "admin")) {
+        return NextResponse.json({ error: "No tienes permisos para modificar esta planilla" }, { status: 403 });
+      }
     }
 
     await prisma.spreadsheetTemplate.update({
@@ -108,6 +123,27 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
 export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
+    let userId = "";
+    try {
+      const body = await request.json();
+      userId = body.userId;
+    } catch {}
+
+    const template = await prisma.spreadsheetTemplate.findUnique({
+      where: { id },
+    });
+
+    if (!template) {
+      return NextResponse.json({ error: "Planilla no encontrada" }, { status: 404 });
+    }
+
+    if (userId) {
+      const user = await prisma.user.findUnique({ where: { id: userId } });
+      if (!user || (template.userId !== userId && user.role !== "admin")) {
+        return NextResponse.json({ error: "No tienes permisos para eliminar esta planilla" }, { status: 403 });
+      }
+    }
+
     await prisma.spreadsheetTemplate.delete({
       where: { id },
     });

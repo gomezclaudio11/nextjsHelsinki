@@ -175,13 +175,20 @@ export default function TemplateDetailPage() {
   const handleDeleteTemplate = async () => {
     if (!confirm("¿Estás seguro de eliminar esta planilla y todos sus registros?")) return;
     try {
-      const res = await fetch(`/api/templates/${id}`, { method: "DELETE" });
-      if (!res.ok) throw new Error("Error al eliminar");
+      const res = await fetch(`/api/templates/${id}`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: user.id }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Error al eliminar");
       router.push("/dashboard");
     } catch (err: any) {
       alert(err.message);
     }
   };
+
+  const isOwnerOrAdmin = user && template && (template.userId === user.id || user.role === 'admin');
 
   if (loading || !user) {
     return (
@@ -303,22 +310,26 @@ export default function TemplateDetailPage() {
         </div>
 
         <div className="flex items-center gap-3">
-          <Link
-            href={`/dashboard/templates/${id}/edit`}
-            className="bg-slate-700 hover:bg-slate-600 text-slate-200 px-3 py-2 rounded-lg text-sm transition-all flex items-center gap-1.5"
-            title="Editar planilla"
-          >
-            <Edit3 size={16} />
-            <span className="hidden sm:inline">Editar Planilla</span>
-          </Link>
-          <button
-            onClick={handleDeleteTemplate}
-            className="bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 px-3 py-2 rounded-lg text-sm transition-all flex items-center gap-1.5"
-            title="Eliminar planilla"
-          >
-            <Trash2 size={16} />
-            <span className="hidden sm:inline">Eliminar</span>
-          </button>
+          {isOwnerOrAdmin && (
+            <>
+              <Link
+                href={`/dashboard/templates/${id}/edit`}
+                className="bg-slate-700 hover:bg-slate-600 text-slate-200 px-3 py-2 rounded-lg text-sm transition-all flex items-center gap-1.5"
+                title="Editar planilla"
+              >
+                <Edit3 size={16} />
+                <span className="hidden sm:inline">Editar Planilla</span>
+              </Link>
+              <button
+                onClick={handleDeleteTemplate}
+                className="bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 px-3 py-2 rounded-lg text-sm transition-all flex items-center gap-1.5"
+                title="Eliminar planilla"
+              >
+                <Trash2 size={16} />
+                <span className="hidden sm:inline">Eliminar</span>
+              </button>
+            </>
+          )}
         </div>
       </header>
 

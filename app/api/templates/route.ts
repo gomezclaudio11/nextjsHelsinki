@@ -7,6 +7,11 @@ export async function GET() {
       include: {
         variables: true,
         user: { select: { name: true, email: true } },
+        accessRequests: {
+          include: {
+            user: { select: { name: true, email: true } },
+          },
+        },
         records: {
           include: {
             values: {

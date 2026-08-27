@@ -9,6 +9,11 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       include: {
         variables: true,
         user: { select: { name: true, email: true } },
+        accessRequests: {
+          include: {
+            user: { select: { name: true, email: true } },
+          },
+        },
         records: {
           include: {
             values: {

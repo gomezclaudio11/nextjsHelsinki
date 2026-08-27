@@ -190,6 +190,40 @@ export default function TemplateDetailPage() {
 
   const isOwnerOrAdmin = user && template && (template.userId === user.id || user.role === 'admin');
 
+  const handleRequestAccess = async () => {
+    try {
+      const res = await fetch(`/api/templates/${id}/request-access`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: user.id }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Error al solicitar acceso");
+      fetchTemplate();
+    } catch (err: any) {
+      alert(err.message);
+    }
+  };
+
+  const handleApproveRequest = async (requestId: string, status: "approved" | "rejected") => {
+    try {
+      const res = await fetch(`/api/templates/${id}/requests`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ requestId, status, ownerUserId: user.id }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Error al actualizar solicitud");
+      fetchTemplate();
+    } catch (err: any) {
+      alert(err.message);
+    }
+  };
+
+  const userAccessRequest = template?.accessRequests?.find((req: any) => req.userId === user?.id);
+  const isAuthorized = isOwnerOrAdmin || (userAccessRequest && userAccessRequest.status === 'approved');
+  const isPending = userAccessRequest && userAccessRequest.status === 'pending';
+
   if (loading || !user) {
     return (
       <div className="min-h-screen bg-slate-900 flex items-center justify-center text-teal-400">
@@ -335,6 +369,41 @@ export default function TemplateDetailPage() {
 
       {/* Main Content */}
       <main className="flex-1 p-6 md:p-10 max-w-7xl mx-auto w-full space-y-8">
+        {isOwnerOrAdmin && template.accessRequests?.filter((r: any) => r.status === 'pending').length > 0 && (
+          <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-6 shadow-xl space-y-4">
+            <h3 className="text-sm font-bold text-amber-300 flex items-center gap-2">
+              <AlertCircle size={18} />
+              Solicitudes de Acceso Pendientes ({template.accessRequests.filter((r: any) => r.status === 'pending').length})
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+              {template.accessRequests.filter((r: any) => r.status === 'pending').map((req: any) => (
+                <div key={req.id} className="bg-slate-900 border border-slate-700 p-4 rounded-xl flex flex-col justify-between gap-3">
+                  <div>
+                    <span className="font-bold text-white text-sm">{req.user?.name || "Usuario"}</span>
+                    <p className="text-slate-400 text-xs">{req.user?.email}</p>
+                  </div>
+                  <div className="flex items-center gap-2 pt-2 border-t border-slate-800">
+                    <button
+                      type="button"
+                      onClick={() => handleApproveRequest(req.id, "approved")}
+                      className="flex-1 bg-teal-600 hover:bg-teal-500 text-white py-1.5 rounded-lg text-xs font-medium transition-all"
+                    >
+                      Aprobar
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleApproveRequest(req.id, "rejected")}
+                      className="flex-1 bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 border border-rose-500/30 py-1.5 rounded-lg text-xs font-medium transition-all"
+                    >
+                      Rechazar
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Left: Blank Data Entry Form */}
           <div className="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl lg:col-span-1 h-fit">
@@ -360,55 +429,84 @@ export default function TemplateDetailPage() {
               </div>
             )}
 
-            <form onSubmit={handleSubmitRecord} className="space-y-4">
-              {template.variables.map((variable: any) => (
-                <div key={variable.id}>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <label className="block text-xs font-medium text-slate-300">{variable.name}</label>
-                    <span className="text-[10px] text-slate-500">
-                      {variable.type === 'number' ? 'Numérico' : variable.type === 'date' ? 'Fecha' : 'Texto'}
-                    </span>
+            {!isAuthorized ? (
+              <div className="py-4">
+                {isPending ? (
+                  <div className="bg-amber-500/10 border border-amber-500/30 text-amber-300 p-4 rounded-xl text-xs space-y-2">
+                    <div className="flex items-center gap-2 font-bold">
+                      <AlertCircle size={16} />
+                      <span>Acceso Pendiente</span>
+                    </div>
+                    <p>Tu solicitud de autorización ha sido enviada al creador de la planilla. Podrás cargar registros una vez que sea aprobada.</p>
                   </div>
-                  {variable.type === 'number' ? (
-                    <input
-                      type="number"
-                      step="any"
-                      value={formValues[variable.id] !== undefined ? formValues[variable.id] : ""}
-                      onChange={(e) => handleInputChange(variable.id, e.target.value)}
-                      placeholder="Ingrese valor numérico..."
-                      required
-                      className="w-full bg-slate-900 border border-slate-700 text-white px-3.5 py-2 rounded-lg focus:outline-none focus:border-teal-500 text-sm"
-                    />
-                  ) : variable.type === 'date' ? (
-                    <input
-                      type="date"
-                      value={formValues[variable.id] !== undefined ? formValues[variable.id] : ""}
-                      onChange={(e) => handleInputChange(variable.id, e.target.value)}
-                      required
-                      className="w-full bg-slate-900 border border-slate-700 text-white px-3.5 py-2 rounded-lg focus:outline-none focus:border-teal-500 text-sm"
-                    />
-                  ) : (
-                    <input
-                      type="text"
-                      value={formValues[variable.id] !== undefined ? formValues[variable.id] : ""}
-                      onChange={(e) => handleInputChange(variable.id, e.target.value)}
-                      placeholder="Ingrese texto u observación..."
-                      required
-                      className="w-full bg-slate-900 border border-slate-700 text-white px-3.5 py-2 rounded-lg focus:outline-none focus:border-teal-500 text-sm"
-                    />
-                  )}
-                </div>
-              ))}
+                ) : (
+                  <div className="bg-slate-900 border border-slate-700 text-slate-300 p-4 rounded-xl text-xs space-y-3">
+                    <div className="flex items-center gap-2 font-bold text-teal-400">
+                      <Activity size={16} />
+                      <span>Autorización Requerida</span>
+                    </div>
+                    <p>Para cargar datos en esta planilla compartida, necesitas solicitar autorización al creador.</p>
+                    <button
+                      type="button"
+                      onClick={handleRequestAccess}
+                      className="w-full bg-teal-600 hover:bg-teal-500 text-white font-medium py-2.5 rounded-lg transition-all shadow-md shadow-teal-600/20 text-xs flex items-center justify-center gap-1.5"
+                    >
+                      Solicitar Autorización al Creador
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <form onSubmit={handleSubmitRecord} className="space-y-4">
+                {template.variables.map((variable: any) => (
+                  <div key={variable.id}>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="block text-xs font-medium text-slate-300">{variable.name}</label>
+                      <span className="text-[10px] text-slate-500">
+                        {variable.type === 'number' ? 'Numérico' : variable.type === 'date' ? 'Fecha' : 'Texto'}
+                      </span>
+                    </div>
+                    {variable.type === 'number' ? (
+                      <input
+                        type="number"
+                        step="any"
+                        value={formValues[variable.id] !== undefined ? formValues[variable.id] : ""}
+                        onChange={(e) => handleInputChange(variable.id, e.target.value)}
+                        placeholder="Ingrese valor numérico..."
+                        required
+                        className="w-full bg-slate-900 border border-slate-700 text-white px-3.5 py-2 rounded-lg focus:outline-none focus:border-teal-500 text-sm"
+                      />
+                    ) : variable.type === 'date' ? (
+                      <input
+                        type="date"
+                        value={formValues[variable.id] !== undefined ? formValues[variable.id] : ""}
+                        onChange={(e) => handleInputChange(variable.id, e.target.value)}
+                        required
+                        className="w-full bg-slate-900 border border-slate-700 text-white px-3.5 py-2 rounded-lg focus:outline-none focus:border-teal-500 text-sm"
+                      />
+                    ) : (
+                      <input
+                        type="text"
+                        value={formValues[variable.id] !== undefined ? formValues[variable.id] : ""}
+                        onChange={(e) => handleInputChange(variable.id, e.target.value)}
+                        placeholder="Ingrese texto u observación..."
+                        required
+                        className="w-full bg-slate-900 border border-slate-700 text-white px-3.5 py-2 rounded-lg focus:outline-none focus:border-teal-500 text-sm"
+                      />
+                    )}
+                  </div>
+                ))}
 
-              <button
-                type="submit"
-                disabled={submitting}
-                className="w-full bg-teal-600 hover:bg-teal-500 text-white font-medium py-2.5 rounded-lg transition-all shadow-lg shadow-teal-600/20 flex items-center justify-center gap-2 text-sm disabled:opacity-50 mt-4"
-              >
-                <Save size={16} />
-                {submitting ? "Guardando..." : "Guardar Registro"}
-              </button>
-            </form>
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="w-full bg-teal-600 hover:bg-teal-500 text-white font-medium py-2.5 rounded-lg transition-all shadow-lg shadow-teal-600/20 flex items-center justify-center gap-2 text-sm disabled:opacity-50 mt-4"
+                >
+                  <Save size={16} />
+                  {submitting ? "Guardando..." : "Guardar Registro"}
+                </button>
+              </form>
+            )}
           </div>
 
           {/* Right: Charts Section with Variable Selector */}

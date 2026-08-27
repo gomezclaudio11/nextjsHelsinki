@@ -10,26 +10,40 @@ datasource db {
 }
 
 model User {
-  id            String                @id @default(cuid())
-  email         String                @unique
-  password      String
-  name          String
-  role          String                @default("doctor") // admin, doctor, nurse
-  createdAt     DateTime              @default(now())
-  templates     SpreadsheetTemplate[]
-  records       CustomRecord[]
-  legacyRecords HospitalRecord[]
+  id             String                  @id @default(cuid())
+  email          String                  @unique
+  password       String
+  name           String
+  role           String                  @default("doctor") // admin, doctor, nurse
+  createdAt      DateTime                @default(now())
+  templates      SpreadsheetTemplate[]
+  records        CustomRecord[]
+  legacyRecords  HospitalRecord[]
+  accessRequests TemplateAccessRequest[]
 }
 
 model SpreadsheetTemplate {
-  id          String             @id @default(cuid())
-  title       String
-  description String?
-  userId      String
-  user        User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  variables   TemplateVariable[]
-  records     CustomRecord[]
-  createdAt   DateTime           @default(now())
+  id             String                  @id @default(cuid())
+  title          String
+  description    String?
+  userId         String
+  user           User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  variables      TemplateVariable[]
+  records        CustomRecord[]
+  accessRequests TemplateAccessRequest[]
+  createdAt      DateTime                @default(now())
+}
+
+model TemplateAccessRequest {
+  id         String              @id @default(cuid())
+  templateId String
+  template   SpreadsheetTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status     String              @default("pending") // "pending", "approved", "rejected"
+  createdAt  DateTime            @default(now())
+
+  @@unique([templateId, userId])
 }
 
 model TemplateVariable {

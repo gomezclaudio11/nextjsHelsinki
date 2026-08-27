@@ -20,6 +20,26 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Planilla no encontrada" }, { status: 404 });
     }
 
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      return NextResponse.json({ error: "Usuario no encontrado" }, { status: 404 });
+    }
+
+    if (template.userId !== userId && user.role !== "admin") {
+      const accessReq = await prisma.templateAccessRequest.findUnique({
+        where: {
+          templateId_userId: {
+            templateId,
+            userId,
+          },
+        },
+      });
+
+      if (!accessReq || accessReq.status !== "approved") {
+        return NextResponse.json({ error: "Necesitas autorización del creador para cargar datos en esta planilla" }, { status: 403 });
+      }
+    }
+
     const valueEntries = Array.isArray(values)
       ? values
       : Object.entries(values).map(([variableId, value]) => ({

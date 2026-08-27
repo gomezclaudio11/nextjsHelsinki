@@ -20,18 +20,31 @@ model User {
   records        CustomRecord[]
   legacyRecords  HospitalRecord[]
   accessRequests TemplateAccessRequest[]
+  observations   TemplateObservation[]
 }
 
 model SpreadsheetTemplate {
   id             String                  @id @default(cuid())
   title          String
   description    String?
+  conclusions    String?
   userId         String
   user           User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
   variables      TemplateVariable[]
   records        CustomRecord[]
   accessRequests TemplateAccessRequest[]
+  observations   TemplateObservation[]
   createdAt      DateTime                @default(now())
+}
+
+model TemplateObservation {
+  id         String              @id @default(cuid())
+  templateId String
+  template   SpreadsheetTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  content    String
+  createdAt  DateTime            @default(now())
 }
 
 model TemplateAccessRequest {

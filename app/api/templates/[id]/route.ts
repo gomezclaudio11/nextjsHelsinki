@@ -14,6 +14,12 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
             user: { select: { name: true, email: true } },
           },
         },
+        observations: {
+          include: {
+            user: { select: { name: true, email: true } },
+          },
+          orderBy: { createdAt: "desc" },
+        },
         records: {
           include: {
             values: {

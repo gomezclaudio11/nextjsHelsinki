@@ -12,6 +12,12 @@ export async function GET() {
             user: { select: { name: true, email: true } },
           },
         },
+        observations: {
+          include: {
+            user: { select: { name: true, email: true } },
+          },
+          orderBy: { createdAt: "desc" },
+        },
         records: {
           include: {
             values: {

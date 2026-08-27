@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
-import { Activity, ArrowLeft, Plus, Trash2, Edit3, BarChart3, AlertCircle, Save, CheckSquare, Square, Filter, Calculator } from "lucide-react";
+import { Activity, ArrowLeft, Plus, Trash2, Edit3, BarChart3, AlertCircle, Save, CheckSquare, Square, Filter, Calculator, FileText } from "lucide-react";
 import {
   BarChart,
   Bar,
@@ -32,6 +32,10 @@ export default function TemplateDetailPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
+  const [newObservation, setNewObservation] = useState("");
+  const [conclusionsText, setConclusionsText] = useState("");
+  const [savingConclusions, setSavingConclusions] = useState(false);
+  const [addingObservation, setAddingObservation] = useState(false);
 
   useEffect(() => {
     const storedUser = localStorage.getItem("hospital_user");
@@ -52,6 +56,7 @@ export default function TemplateDetailPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Error al cargar la planilla");
       setTemplate(data);
+      setConclusionsText(data.conclusions || "");
 
       const initial: { [key: string]: string } = {};
       data.variables.forEach((v: any) => {
@@ -220,6 +225,46 @@ export default function TemplateDetailPage() {
     }
   };
 
+  const handleAddObservation = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newObservation.trim() || !user) return;
+    setAddingObservation(true);
+    try {
+      const res = await fetch(`/api/templates/${id}/observations`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: user.id, content: newObservation }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Error al guardar la observación");
+      setNewObservation("");
+      fetchTemplate();
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setAddingObservation(false);
+    }
+  };
+
+  const handleSaveConclusions = async () => {
+    if (!user) return;
+    setSavingConclusions(true);
+    try {
+      const res = await fetch(`/api/templates/${id}/conclusions`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: user.id, conclusions: conclusionsText }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Error al guardar las conclusiones");
+      setTemplate(data);
+      alert("¡Conclusiones guardadas con éxito!");
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setSavingConclusions(false);
+    }
+  };
   const userAccessRequest = template?.accessRequests?.find((req: any) => req.userId === user?.id);
   const isAuthorized = isOwnerOrAdmin || (userAccessRequest && userAccessRequest.status === 'approved');
   const isPending = userAccessRequest && userAccessRequest.status === 'pending';
@@ -782,6 +827,83 @@ export default function TemplateDetailPage() {
               )}
             </div>
           )}
+
+          {/* Observations & Conclusions Sections below Statistics */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 border-t border-slate-700 pt-6 mt-6">
+            {/* Left: Observations */}
+            <div className="bg-slate-900 border border-slate-700 rounded-xl p-5 space-y-4">
+              <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                <FileText size={16} className="text-teal-400" />
+                Observaciones
+              </h4>
+              <p className="text-xs text-slate-400">
+                Añade notas u observaciones sobre las mediciones. Quedará registrado el autor y la fecha.
+              </p>
+
+              <form onSubmit={handleAddObservation} className="space-y-3">
+                <textarea
+                  value={newObservation}
+                  onChange={(e) => setNewObservation(e.target.value)}
+                  placeholder="Escribe una observación..."
+                  rows={2}
+                  className="w-full bg-slate-800 border border-slate-700 text-white p-3 rounded-lg focus:outline-none focus:border-teal-500 text-xs"
+                />
+                <button
+                  type="submit"
+                  disabled={addingObservation || !newObservation.trim()}
+                  className="bg-teal-600 hover:bg-teal-500 text-white px-4 py-2 rounded-lg text-xs font-medium transition-all shadow-sm disabled:opacity-50"
+                >
+                  {addingObservation ? "Guardando..." : "Agregar Observación"}
+                </button>
+              </form>
+
+              <div className="space-y-2.5 max-h-60 overflow-y-auto pr-1">
+                {template.observations && template.observations.length > 0 ? (
+                  template.observations.map((obs: any) => (
+                    <div key={obs.id} className="bg-slate-800 border border-slate-700/60 p-3 rounded-lg text-xs space-y-1">
+                      <p className="text-slate-200">{obs.content}</p>
+                      <div className="flex items-center justify-between text-[10px] text-slate-500 pt-1 border-t border-slate-700/40">
+                        <span className="font-semibold text-teal-400">{obs.user?.name || "Usuario"}</span>
+                        <span>{new Date(obs.createdAt).toLocaleDateString()} {new Date(obs.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-xs text-slate-500 text-center py-4">No hay observaciones registradas todavía.</p>
+                )}
+              </div>
+            </div>
+
+            {/* Right: Conclusions */}
+            <div className="bg-slate-900 border border-slate-700 rounded-xl p-5 space-y-4">
+              <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                <Calculator size={16} className="text-teal-400" />
+                Conclusiones (Datos Recaudados)
+              </h4>
+              <p className="text-xs text-slate-400">
+                Escribe las conclusiones analíticas derivadas del cruce de variables y las métricas obtenidas.
+              </p>
+
+              <div className="space-y-3">
+                <textarea
+                  value={conclusionsText}
+                  onChange={(e) => setConclusionsText(e.target.value)}
+                  placeholder="Escribe las conclusiones sobre los datos analizados..."
+                  rows={5}
+                  className="w-full bg-slate-800 border border-slate-700 text-white p-3 rounded-lg focus:outline-none focus:border-teal-500 text-xs"
+                />
+                <button
+                  type="button"
+                  onClick={handleSaveConclusions}
+                  disabled={savingConclusions}
+                  className="bg-teal-600 hover:bg-teal-500 text-white px-4 py-2 rounded-lg text-xs font-medium transition-all shadow-sm disabled:opacity-50 flex items-center gap-1.5"
+                >
+                  <Save size={14} />
+                  {savingConclusions ? "Guardando..." : "Guardar Conclusiones"}
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       </main>
     </div>

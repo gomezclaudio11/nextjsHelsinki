@@ -246,6 +246,22 @@ export default function TemplateDetailPage() {
     }
   };
 
+  const handleDeleteObservation = async (obsId: string) => {
+    if (!confirm("¿Estás seguro de eliminar esta observación?")) return;
+    try {
+      const res = await fetch(`/api/templates/${id}/observations/${obsId}`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: user.id }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Error al eliminar la observación");
+      fetchTemplate();
+    } catch (err: any) {
+      alert(err.message);
+    }
+  };
+
   const handleSaveConclusions = async () => {
     if (!user) return;
     setSavingConclusions(true);
@@ -840,34 +856,55 @@ export default function TemplateDetailPage() {
                 Añade notas u observaciones sobre las mediciones. Quedará registrado el autor y la fecha.
               </p>
 
-              <form onSubmit={handleAddObservation} className="space-y-3">
-                <textarea
-                  value={newObservation}
-                  onChange={(e) => setNewObservation(e.target.value)}
-                  placeholder="Escribe una observación..."
-                  rows={2}
-                  className="w-full bg-slate-800 border border-slate-700 text-white p-3 rounded-lg focus:outline-none focus:border-teal-500 text-xs"
-                />
-                <button
-                  type="submit"
-                  disabled={addingObservation || !newObservation.trim()}
-                  className="bg-teal-600 hover:bg-teal-500 text-white px-4 py-2 rounded-lg text-xs font-medium transition-all shadow-sm disabled:opacity-50"
-                >
-                  {addingObservation ? "Guardando..." : "Agregar Observación"}
-                </button>
-              </form>
+              {isAuthorized ? (
+                <form onSubmit={handleAddObservation} className="space-y-3">
+                  <textarea
+                    value={newObservation}
+                    onChange={(e) => setNewObservation(e.target.value)}
+                    placeholder="Escribe una observación..."
+                    rows={2}
+                    className="w-full bg-slate-800 border border-slate-700 text-white p-3 rounded-lg focus:outline-none focus:border-teal-500 text-xs"
+                  />
+                  <button
+                    type="submit"
+                    disabled={addingObservation || !newObservation.trim()}
+                    className="bg-teal-600 hover:bg-teal-500 text-white px-4 py-2 rounded-lg text-xs font-medium transition-all shadow-sm disabled:opacity-50"
+                  >
+                    {addingObservation ? "Guardando..." : "Agregar Observación"}
+                  </button>
+                </form>
+              ) : (
+                <div className="text-xs text-slate-400 bg-slate-800 p-3 rounded-lg">
+                  Se requiere autorización del creador para añadir observaciones.
+                </div>
+              )}
 
               <div className="space-y-2.5 max-h-60 overflow-y-auto pr-1">
                 {template.observations && template.observations.length > 0 ? (
-                  template.observations.map((obs: any) => (
-                    <div key={obs.id} className="bg-slate-800 border border-slate-700/60 p-3 rounded-lg text-xs space-y-1">
-                      <p className="text-slate-200">{obs.content}</p>
-                      <div className="flex items-center justify-between text-[10px] text-slate-500 pt-1 border-t border-slate-700/40">
-                        <span className="font-semibold text-teal-400">{obs.user?.name || "Usuario"}</span>
-                        <span>{new Date(obs.createdAt).toLocaleDateString()} {new Date(obs.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                  template.observations.map((obs: any) => {
+                    const canDeleteObs = user && (obs.userId === user.id || isOwnerOrAdmin);
+                    return (
+                      <div key={obs.id} className="bg-slate-800 border border-slate-700/60 p-3 rounded-lg text-xs space-y-1 relative group">
+                        <div className="flex items-start justify-between gap-2">
+                          <p className="text-slate-200 flex-1">{obs.content}</p>
+                          {canDeleteObs && (
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteObservation(obs.id)}
+                              className="text-slate-500 hover:text-rose-400 p-1 transition-colors"
+                              title="Eliminar observación"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          )}
+                        </div>
+                        <div className="flex items-center justify-between text-[10px] text-slate-500 pt-1 border-t border-slate-700/40">
+                          <span className="font-semibold text-teal-400">{obs.user?.name || "Usuario"}</span>
+                          <span>{new Date(obs.createdAt).toLocaleDateString()} {new Date(obs.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                        </div>
                       </div>
-                    </div>
-                  ))
+                    );
+                  })
                 ) : (
                   <p className="text-xs text-slate-500 text-center py-4">No hay observaciones registradas todavía.</p>
                 )}
@@ -878,29 +915,46 @@ export default function TemplateDetailPage() {
             <div className="bg-slate-900 border border-slate-700 rounded-xl p-5 space-y-4">
               <h4 className="text-sm font-bold text-white flex items-center gap-2">
                 <Calculator size={16} className="text-teal-400" />
-                Conclusiones (Datos Recaudados)
+                Conclusiones Finales
               </h4>
               <p className="text-xs text-slate-400">
                 Escribe las conclusiones analíticas derivadas del cruce de variables y las métricas obtenidas.
               </p>
 
               <div className="space-y-3">
-                <textarea
-                  value={conclusionsText}
-                  onChange={(e) => setConclusionsText(e.target.value)}
-                  placeholder="Escribe las conclusiones sobre los datos analizados..."
-                  rows={5}
-                  className="w-full bg-slate-800 border border-slate-700 text-white p-3 rounded-lg focus:outline-none focus:border-teal-500 text-xs"
-                />
-                <button
-                  type="button"
-                  onClick={handleSaveConclusions}
-                  disabled={savingConclusions}
-                  className="bg-teal-600 hover:bg-teal-500 text-white px-4 py-2 rounded-lg text-xs font-medium transition-all shadow-sm disabled:opacity-50 flex items-center gap-1.5"
-                >
-                  <Save size={14} />
-                  {savingConclusions ? "Guardando..." : "Guardar Conclusiones"}
-                </button>
+                {isAuthorized ? (
+                  <>
+                    <textarea
+                      value={conclusionsText}
+                      onChange={(e) => setConclusionsText(e.target.value)}
+                      placeholder="Escribe las conclusiones sobre los datos analizados..."
+                      rows={4}
+                      className="w-full bg-slate-800 border border-slate-700 text-white p-3 rounded-lg focus:outline-none focus:border-teal-500 text-xs"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleSaveConclusions}
+                      disabled={savingConclusions}
+                      className="bg-teal-600 hover:bg-teal-500 text-white px-4 py-2 rounded-lg text-xs font-medium transition-all shadow-sm disabled:opacity-50 flex items-center gap-1.5"
+                    >
+                      <Save size={14} />
+                      {savingConclusions ? "Guardando..." : "Guardar Conclusiones"}
+                    </button>
+                  </>
+                ) : (
+                  <div className="text-xs text-slate-400 bg-slate-800 p-3 rounded-lg">
+                    Se requiere autorización del creador para editar las conclusiones.
+                  </div>
+                )}
+
+                {template.conclusions && (
+                  <div className="mt-4 pt-4 border-t border-slate-800 space-y-1.5">
+                    <span className="text-[11px] font-bold text-teal-400 uppercase tracking-wider">Conclusión Actual Guardada:</span>
+                    <div className="bg-slate-800 border border-slate-700/60 p-3.5 rounded-lg text-xs text-slate-200 whitespace-pre-wrap">
+                      {template.conclusions}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>

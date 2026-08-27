@@ -19,6 +19,26 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       return NextResponse.json({ error: "Planilla no encontrada" }, { status: 404 });
     }
 
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      return NextResponse.json({ error: "Usuario no encontrado" }, { status: 404 });
+    }
+
+    if (template.userId !== userId && user.role !== "admin") {
+      const accessReq = await prisma.templateAccessRequest.findUnique({
+        where: {
+          templateId_userId: {
+            templateId: id,
+            userId,
+          },
+        },
+      });
+
+      if (!accessReq || accessReq.status !== "approved") {
+        return NextResponse.json({ error: "Necesitas autorización del creador para escribir observaciones" }, { status: 403 });
+      }
+    }
+
     const observation = await prisma.templateObservation.create({
       data: {
         templateId: id,

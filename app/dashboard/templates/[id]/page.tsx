@@ -281,6 +281,28 @@ export default function TemplateDetailPage() {
       setSavingConclusions(false);
     }
   };
+
+  const handleDeleteConclusions = async () => {
+    if (!confirm("¿Estás seguro de eliminar las conclusiones finales?")) return;
+    if (!user) return;
+    setSavingConclusions(true);
+    try {
+      const res = await fetch(`/api/templates/${id}/conclusions`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: user.id, conclusions: "" }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Error al eliminar las conclusiones");
+      setTemplate(data);
+      setConclusionsText("");
+      alert("¡Conclusiones eliminadas con éxito!");
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setSavingConclusions(false);
+    }
+  };
   const userAccessRequest = template?.accessRequests?.find((req: any) => req.userId === user?.id);
   const isAuthorized = isOwnerOrAdmin || (userAccessRequest && userAccessRequest.status === 'approved');
   const isPending = userAccessRequest && userAccessRequest.status === 'pending';
@@ -931,15 +953,29 @@ export default function TemplateDetailPage() {
                       rows={4}
                       className="w-full bg-slate-800 border border-slate-700 text-white p-3 rounded-lg focus:outline-none focus:border-teal-500 text-xs"
                     />
-                    <button
-                      type="button"
-                      onClick={handleSaveConclusions}
-                      disabled={savingConclusions}
-                      className="bg-teal-600 hover:bg-teal-500 text-white px-4 py-2 rounded-lg text-xs font-medium transition-all shadow-sm disabled:opacity-50 flex items-center gap-1.5"
-                    >
-                      <Save size={14} />
-                      {savingConclusions ? "Guardando..." : "Guardar Conclusiones"}
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={handleSaveConclusions}
+                        disabled={savingConclusions}
+                        className="bg-teal-600 hover:bg-teal-500 text-white px-4 py-2 rounded-lg text-xs font-medium transition-all shadow-sm disabled:opacity-50 flex items-center gap-1.5"
+                      >
+                        <Save size={14} />
+                        {savingConclusions ? "Guardando..." : "Guardar Conclusiones"}
+                      </button>
+                      {template.conclusions && (
+                        <button
+                          type="button"
+                          onClick={handleDeleteConclusions}
+                          disabled={savingConclusions}
+                          className="bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 px-3 py-2 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 disabled:opacity-50"
+                          title="Borrar conclusiones"
+                        >
+                          <Trash2 size={14} />
+                          <span>Borrar</span>
+                        </button>
+                      )}
+                    </div>
                   </>
                 ) : (
                   <div className="text-xs text-slate-400 bg-slate-800 p-3 rounded-lg">

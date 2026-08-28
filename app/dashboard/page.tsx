@@ -89,7 +89,7 @@ export default function DashboardPage() {
           </div>
           <div className="text-xs bg-teal-500/10 text-teal-300 px-3 py-1.5 rounded-full border border-teal-500/30 flex items-center gap-1.5">
             <Sparkles size={14} />
-            Sistema Dinámico Sin Datos Hardcodeados
+            Sistema Dinámico
           </div>
         </div>
 

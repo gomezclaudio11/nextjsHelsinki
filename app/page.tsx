@@ -7,15 +7,15 @@ export default function Home() {
       <div className="max-w-4xl w-full text-center space-y-8">
         <div className="inline-flex items-center gap-2 bg-teal-500/10 text-teal-400 px-4 py-2 rounded-full border border-teal-500/20 text-sm font-medium">
           <Activity size={18} />
-          Proyecto Práctico Next.js App Router
+          Sistema de Monitoreo Hospitalario
         </div>
 
         <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight text-white">
-          HospiMetrics <span className="text-teal-400">Next.js</span>
+          HospiMetrics <span className="text-teal-400">Recoleccion de datos</span>
         </h1>
 
         <p className="text-lg md:text-xl text-slate-400 max-w-2xl mx-auto">
-          Sistema integral de monitoreo, registro y cruce de variables hospitalarias desarrollado para aprender Next.js, Prisma, Tailwind CSS y Recharts.
+          Sistema integral de monitoreo, registro y cruce de variables hospitalarias para optimizar la gestión de recursos y mejorar la atención al paciente.
         </p>
 
         <div className="flex flex-col sm:flex-row justify-center gap-4 pt-4">
@@ -41,14 +41,12 @@ export default function Home() {
               <ShieldCheck size={24} />
             </div>
             <h3 className="font-bold text-white mb-2">Autenticación Segura</h3>
-            <p className="text-slate-400 text-sm">Control de acceso de usuarios y médicos con contraseñas cifradas con bcrypt.</p>
           </div>
 
           <div className="bg-slate-800 border border-slate-700 p-6 rounded-2xl">
             <div className="bg-blue-500/10 text-blue-400 p-3 rounded-lg w-fit mb-4 border border-blue-500/20">
               <Database size={24} />
             </div>
-            <h3 className="font-bold text-white mb-2">Prisma ORM & SQLite</h3>
             <p className="text-slate-400 text-sm">Almacenamiento relacional rápido y escalable con migraciones automáticas.</p>
           </div>
 
@@ -57,7 +55,7 @@ export default function Home() {
               <BarChart3 size={24} />
             </div>
             <h3 className="font-bold text-white mb-2">Gráficos y Cruce de Datos</h3>
-            <p className="text-slate-400 text-sm">Visualización estadística con Recharts cruzando ocupación, espera e infecciones.</p>
+            <p className="text-slate-400 text-sm">Visualización estadística </p>
           </div>
         </div>
       </div>

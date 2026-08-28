@@ -50,7 +50,7 @@ export default function LoginPage() {
           <div className="bg-teal-500/10 p-4 rounded-full text-teal-400 mb-3 border border-teal-500/20">
             <Activity size={36} />
           </div>
-          <h1 className="text-2xl font-bold text-white tracking-wide">HospiMetrics Next</h1>
+          <h1 className="text-2xl font-bold text-white tracking-wide">HospiMetrics </h1>
           <p className="text-slate-400 text-sm mt-1">Sistema de Monitoreo de Variables Hospitalarias</p>
         </div>
 
@@ -110,10 +110,7 @@ export default function LoginPage() {
           </Link>
         </div>
 
-        <div className="mt-4 text-center text-xs text-slate-500">
-          Credenciales por defecto: <span className="text-slate-400">doctor@hospital.com</span> / <span className="text-slate-400">123456</span>
         </div>
-      </div>
     </div>
   );
 }

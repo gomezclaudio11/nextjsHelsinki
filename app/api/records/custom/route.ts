@@ -39,7 +39,8 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: "Necesitas autorización del creador para cargar datos en esta planilla" }, { status: 403 });
       }
     }
-
+    
+    //normalizacion de datos
     const valueEntries = Array.isArray(values)
       ? values
       : Object.entries(values).map(([variableId, value]) => ({
@@ -47,6 +48,7 @@ export async function POST(request: Request) {
           value,
         }));
 
+        
     const createValuesData = valueEntries.map((entry: { variableId: string; value: any }) => {
       const variable = template.variables.find((v: any) => v.id === entry.variableId);
       const isNumber = variable?.type === "number";
